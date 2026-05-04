@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Nexus Dashboard</title>
+    <style>
+        body { background: #0f172a; color: white; font-family: sans-serif; padding: 2rem; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; background: #1e293b; }
+        th, td { padding: 12px; border: 1px solid #334155; text-align: left; }
+        .modal { display:none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1e293b; padding: 2rem; border-radius: 8px; width: 450px; border: 1px solid #3b82f6; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        input, select, textarea { width: 100%; margin: 8px 0; background: #0f172a; color: white; border: 1px solid #334155; padding: 10px; box-sizing: border-box; border-radius: 4px; }
+        .logout { float: right; background: #ef4444; padding: 8px 15px; border-radius: 4px; border: none; color: white; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body onload="load()">
+    <button class="logout" onclick="location.href='/logout'">LOGOUT</button>
+    <h1>Command Center</h1>
+    <button onclick="openModal()">+ Add New Opportunity</button>
+    
+    <table>
+        <thead><tr><th>Opportunity Name</th><th>Category</th><th>Duration</th><th>Actions</th></tr></thead>
+        <tbody id="list"></tbody>
+    </table>
+
+    <div id="opp-modal" class="modal">
+        <h3 id="modal-title">Opportunity Details</h3>
+        <input id="opp-id" type="hidden">
+        <input id="n" placeholder="Opportunity Name">
+        <select id="c"><option>Technology</option><option>Business</option><option>Design</option></select>
+        <input id="d" placeholder="Duration">
+        <input id="sd" type="date">
+        <textarea id="ds" placeholder="Full Description"></textarea>
+        <button onclick="save()">SAVE CHANGES</button>
+        <button onclick="document.getElementById('opp-modal').style.display='none'">CANCEL</button>
+    </div>
+
+    <script>
+        async function load() {
+            const res = await fetch('/api/opportunities');
+            const data = await res.json();
+            const body = document.getElementById('list');
+            body.innerHTML = data.length === 0 ? "<tr><td colspan='4'>No opportunities.</td></tr>" : 
+                data.map(o => `
+                <tr id="row-${o.id}">
+                    <td>${o.name}</td><td>${o.category}</td><td>${o.duration}</td>
+                    <td>
+                        <button onclick="alert('Info: ' + '${o.description}')">View</button>
+                        <button onclick="openModal(${JSON.stringify(o).replace(/"/g, '&quot;')})">Edit</button>
+                        <button onclick="del(${o.id})">Delete</button>
+                    </td>
+                </tr>`).join('');
+        }
+        function openModal(o = null) {
+            document.getElementById('opp-id').value = o ? o.id : '';
+            document.getElementById('n').value = o ? o.name : '';
+            document.getElementById('c').value = o ? o.category : 'Technology';
+            document.getElementById('d').value = o ? o.duration : '';
+            document.getElementById('sd').value = o ? o.start_date : '';
+            document.getElementById('ds').value = o ? o.description : '';
+            document.getElementById('modal-title').innerText = o ? "Modify Opportunity" : "Launch New Opportunity";
+            document.getElementById('opp-modal').style.display = 'block';
+        }
+        async function save() {
+            const id = document.getElementById('opp-id').value;
+            const res = await fetch(id ? `/api/opportunities/${id}` : '/api/opportunities', {
+                method: id ? 'PUT' : 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ name: document.getElementById('n').value, category: document.getElementById('c').value, duration: document.getElementById('d').value, start_date: document.getElementById('sd').value, description: document.getElementById('ds').value })
+            });
+            if(res.ok) { document.getElementById('opp-modal').style.display='none'; load(); }
+        }
+        async function del(id) {
+            if(confirm("Erase permanently?")) {
+                const res = await fetch(`/api/opportunities/${id}`, { method: 'DELETE' });
+                if(res.ok) document.getElementById(`row-${id}`).remove();
+            }
+        }
+    </script>
+</body>
+</html>
