@@ -1,65 +1,64 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus Admin Portal</title>
+    <title>Nexus Admin - Auth</title>
     <style>
-        body {
-            margin: 0;
-            font-family: 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 40px;
-            width: 400px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
-            text-align: center;
-        }
-        h1 { margin-bottom: 30px; font-weight: 300; letter-spacing: 2px; }
-        input {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            border-radius: 8px;
-            color: white;
-            box-sizing: border-box;
-        }
-        button {
-            width: 100%;
-            padding: 12px;
-            margin-top: 20px;
-            background: #4ecca3;
-            border: none;
-            border-radius: 8px;
-            color: #1a1a2e;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        button:hover { background: #45b291; transform: translateY(-2px); }
-        #status { margin-top: 15px; font-size: 0.9em; color: #4ecca3; }
+        body { background: #0f172a; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: #1e293b; padding: 2rem; border-radius: 8px; width: 350px; text-align: center; border: 1px solid #334155; }
+        input { width: 100%; padding: 10px; margin: 8px 0; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #3b82f6; border: none; color: white; cursor: pointer; border-radius: 4px; font-weight: bold; margin-top: 10px; }
+        .toggle { font-size: 0.8rem; margin-top: 15px; cursor: pointer; color: #94a3b8; text-decoration: underline; }
     </style>
 </head>
 <body>
-    <div class="glass-panel">
-        <h1>NEXUS ADMIN</h1>
-        <input type="email" id="email" placeholder="Admin Email">
-        <input type="password" id="password" placeholder="Password">
-        <button onclick="nexusBridge.login()">Initialize Connection</button>
-        <div id="status">System: Standby</div>
+    <div class="card">
+        <h2 id="title">NEXUS LOGIN</h2>
+        <div id="l-box">
+            <input type="email" id="le" placeholder="Email">
+            <input type="password" id="lp" placeholder="Password">
+            <label style="font-size: 0.8rem;"><input type="checkbox" id="lr" style="width:auto"> Remember Me</label>
+            <button onclick="login()">INITIALIZE ACCESS</button>
+            <div class="toggle" onclick="toggle('s')">New Admin? Sign Up</div>
+            <div class="toggle" onclick="toggle('f')">Forgot Password?</div>
+        </div>
+        <div id="s-box" style="display:none">
+            <input type="text" id="sn" placeholder="Full Name">
+            <input type="email" id="se" placeholder="Email">
+            <input type="password" id="sp" placeholder="Password (Min 8 chars)">
+            <input type="password" id="sc" placeholder="Confirm Password">
+            <button onclick="signup()">CREATE PROFILE</button>
+            <div class="toggle" onclick="toggle('l')">Return to Login</div>
+        </div>
+        <div id="f-box" style="display:none">
+            <p style="font-size: 0.8rem;">Request a 1-hour secure reset link.</p>
+            <input type="email" id="fe" placeholder="Registered Email">
+            <button onclick="forgot()">REQUEST LINK</button>
+            <div class="toggle" onclick="toggle('l')">Return to Login</div>
+        </div>
     </div>
-    <script src="nexus_bridge.js"></script>
+    <script>
+        function toggle(m) {
+            document.getElementById('l-box').style.display = m === 'l' ? 'block' : 'none';
+            document.getElementById('s-box').style.display = m === 's' ? 'block' : 'none';
+            document.getElementById('f-box').style.display = m === 'f' ? 'block' : 'none';
+            document.getElementById('title').innerText = m === 's' ? 'NEXUS SIGNUP' : 'NEXUS LOGIN';
+        }
+        async function signup() {
+            const p = document.getElementById('sp').value;
+            if(p !== document.getElementById('sc').value) return alert("Passwords mismatch");
+            const res = await fetch('/api/signup', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({full_name: document.getElementById('sn').value, email: document.getElementById('se').value, password: p}) });
+            if(res.ok) { alert("Admin Profile Created!"); toggle('l'); } else { const d = await res.json(); alert(d.error); }
+        }
+        async function login() {
+            const res = await fetch('/api/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({email: document.getElementById('le').value, password: document.getElementById('lp').value, remember: document.getElementById('lr').checked}) });
+            const d = await res.json();
+            if(res.ok) window.location.href = d.redirect; else alert(d.error);
+        }
+        async function forgot() {
+            const res = await fetch('/api/request-reset', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({email: document.getElementById('fe').value}) });
+            const d = await res.json();
+            alert("Sent! Debug Link: " + d.debug_link);
+        }
+    </script>
 </body>
 </html>
