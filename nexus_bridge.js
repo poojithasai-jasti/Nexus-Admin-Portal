@@ -18,7 +18,12 @@ const nexusBridge = {
             if (response.ok) {
                 status.innerText = "Access Granted. Redirecting...";
                 status.style.color = "#4ecca3";
-                // Add redirect logic here later
+                
+                // Wait for the animation before jumping to the dashboard
+                setTimeout(() => {
+                    window.location.href = '/dashboard';
+                }, 1500);
+
             } else {
                 status.innerText = "Error: " + data.error;
                 status.style.color = "#ff4d4d";
