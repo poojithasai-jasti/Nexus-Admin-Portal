@@ -2,12 +2,15 @@ import uuid
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, current_user
+from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timedelta
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'qatar_foundation_secure_2026'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///qf_admin.db'
+CORS(app) # Enables the Nexus Bridge connection
+
+app.config['SECRET_KEY'] = 'nexus_protocol_secure_2026'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///nexus_admin.db'
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 
 db = SQLAlchemy(app)
@@ -29,15 +32,13 @@ class Opportunity(db.Model):
     description = db.Column(db.Text, nullable=False)
     skills = db.Column(db.String(200), nullable=False)
     category = db.Column(db.String(50), nullable=False)
-    future_opps = db.Column(db.Text)
-    max_applicants = db.Column(db.Integer, nullable=True)
     admin_id = db.Column(db.Integer, db.ForeignKey('admin.id'), nullable=False)
 
 @login_manager.user_loader
 def load_user(user_id):
     return Admin.query.get(int(user_id))
 
-# --- TASK 1: AUTHENTICATION ---
+# --- AUTHENTICATION ---
 @app.route('/api/signup', methods=['POST'])
 def signup():
     data = request.json
@@ -58,12 +59,7 @@ def login():
     login_user(admin, remember=data.get('remember_me', False))
     return jsonify({"message": "Logged in"}), 200
 
-@app.route('/api/forgot-password', methods=['POST'])
-def forgot_password():
-    # Privacy check: return success even if email doesn't exist
-    return jsonify({"message": "If an account exists, a reset link has been sent."}), 200
-
-# --- TASK 2: OPPORTUNITY MANAGEMENT ---
+# --- OPPORTUNITY MANAGEMENT ---
 @app.route('/api/opportunities', methods=['GET'])
 @login_required
 def get_opps():
@@ -88,18 +84,7 @@ def add_opp():
     db.session.commit()
     return jsonify({"message": "Opportunity added successfully"}), 201
 
-@app.route('/api/opportunities/delete/<int:id>', methods=['DELETE'])
-@login_required
-def delete_opp(id):
-    opp = Opportunity.query.get_or_404(id)
-    if opp.admin_id != current_user.id:
-        return jsonify({"error": "Unauthorized"}), 403
-    db.session.delete(opp)
-    db.session.commit()
-    return jsonify({"message": "Deleted successfully"}), 200
-
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
-  
+    app.run(debug=True, port=8080)
